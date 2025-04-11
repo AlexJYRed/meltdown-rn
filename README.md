@@ -2,13 +2,15 @@
 
 1. Start server
 
-   ```cd backend
+   ```
+   cd backend
    node server.js
    ```
 
 2. Start the frontend
 
-   ```new terminal
+   ```
+   new terminal
    cd frontend
    npm install
     npx expo start
