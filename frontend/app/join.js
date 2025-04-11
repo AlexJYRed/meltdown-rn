@@ -46,7 +46,9 @@ export default function JoinScreen() {
         </>
       ) : (
         <>
-          <Text style={{ fontSize: 24, marginBottom: 20 }}>Available Hosts:</Text>
+          <Text style={{ fontSize: 24, marginBottom: 20 }}>
+            Available Hosts:
+          </Text>
           <FlatList
             data={hosts}
             keyExtractor={(item) => item.id}

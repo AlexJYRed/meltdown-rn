@@ -36,14 +36,15 @@ export default function HostScreen() {
       <FlatList
         data={playerList}
         keyExtractor={([id]) => id}
-        renderItem={({ item }) => (
-          <Text>{item[1].name}</Text>
-        )}
+        renderItem={({ item }) => <Text>{item[1].name}</Text>}
       />
       <View style={{ marginTop: 30 }}>
-        <Button title="Start Game" onPress={handleStart} disabled={playerList.length === 0} />
+        <Button
+          title="Start Game"
+          onPress={handleStart}
+          disabled={playerList.length === 0}
+        />
       </View>
     </View>
   );
 }
-
