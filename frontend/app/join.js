@@ -1,5 +1,4 @@
 // app/join.js
-
 import { useEffect, useState, useContext } from "react";
 import { View, Text, Button, FlatList, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
@@ -10,22 +9,19 @@ export default function JoinScreen() {
   const [hosts, setHosts] = useState([]);
   const [waiting, setWaiting] = useState(false);
   const router = useRouter();
-  const { joinHost } = useContext(GameContext);
+  const { joinHost, allStates } = useContext(GameContext);
 
   useEffect(() => {
     socket.connect();
     socket.emit("find-hosts");
 
-    socket.on("host-list", (list) => {
-      setHosts(list);
-    });
-
-    socket.on("start-game", () => {
-      router.replace("/game");
-    });
+    socket.on("host-list", (list) => setHosts(list));
+    socket.on("players", () => {}); // triggers context updates
+    socket.on("start-game", () => router.replace("/game"));
 
     return () => {
       socket.off("host-list");
+      socket.off("players");
       socket.off("start-game");
     };
   }, []);
@@ -35,6 +31,8 @@ export default function JoinScreen() {
     setWaiting(true);
   };
 
+  const joinedPlayers = Object.values(allStates);
+
   return (
     <View style={{ padding: 40 }}>
       {waiting ? (
@@ -42,7 +40,12 @@ export default function JoinScreen() {
           <Text style={{ fontSize: 24, marginBottom: 20 }}>
             Waiting for host to start...
           </Text>
-          <ActivityIndicator size="large" />
+          <FlatList
+            data={joinedPlayers}
+            keyExtractor={(item, index) => item.name + index}
+            renderItem={({ item }) => <Text>{item.name}</Text>}
+          />
+          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         </>
       ) : (
         <>

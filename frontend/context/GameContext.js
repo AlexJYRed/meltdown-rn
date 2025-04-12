@@ -1,4 +1,5 @@
-import React, { createContext, useEffect, useState } from "react";
+// context/GameContext.js
+import React, { createContext, useEffect, useState, useMemo } from "react";
 import socket from "../utils/socket";
 
 export const GameContext = createContext();
@@ -7,27 +8,47 @@ export function GameProvider({ children }) {
   const [allStates, setAllStates] = useState({});
   const [myId, setMyId] = useState(null);
   const [playerName, setPlayerName] = useState("");
+  const [myState, setMyState] = useState([false, false, false, false]);
+  const [myLevers, setMyLevers] = useState([]);
+  const [rule, setRule] = useState(null);
+  
 
   useEffect(() => {
     socket.connect();
 
-    socket.on("connect", () => {
-      setMyId(socket.id);
-    });
-
-    socket.on("players", (data) => {
+    const handleConnect = () => setMyId(socket.id);
+    const handlePlayers = (data) => {
       setAllStates(data);
-    });
+      if (data[socket.id]) {
+        const me = data[socket.id];
+        if (me?.state) setMyState(me.state);
+        if (me?.levers) setMyLevers(me.levers);
+      }
+    };
+
+    const handleStartGame = ({ rule }) => {
+      if (rule) {
+        setRule(rule); // ✅ store it
+        console.log("Received rule:", rule);
+      }
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("players", handlePlayers);
+    socket.on("start-game", handleStartGame);
 
     return () => {
+      socket.off("connect", handleConnect);
+      socket.off("players", handlePlayers);
+      socket.off("start-game", handleStartGame);
       socket.disconnect();
     };
   }, []);
 
-  const toggleButton = (index) => {
-    const current = allStates[myId]?.state || [false, false];
-    const newState = [...current];
+  const toggleLever = (index) => {
+    const newState = [...myState];
     newState[index] = !newState[index];
+    setMyState(newState);
     socket.emit("updateState", newState);
   };
 
@@ -39,19 +60,31 @@ export function GameProvider({ children }) {
     socket.emit("join-host", { hostId, name: playerName });
   };
 
+  const leaveGame = () => {
+    socket.emit("leave-game");
+    setAllStates({});
+    setMyState([false, false, false, false]);
+    setMyLevers([]);
+    setMyId(null);
+  };
+
+  const contextValue = useMemo(
+    () => ({
+      myId,
+      allStates,
+      myState,
+      myLevers,
+      toggleLever,
+      playerName,
+      setPlayerName,
+      hostGame,
+      joinHost,
+      leaveGame,
+      rule,
+    }),
+    [myId, allStates, myState, myLevers, toggleLever, playerName, rule]
+  );
   return (
-    <GameContext.Provider
-      value={{
-        myId,
-        allStates,
-        toggleButton,
-        playerName,
-        setPlayerName,
-        hostGame,
-        joinHost,
-      }}
-    >
-      {children}
-    </GameContext.Provider>
+    <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>
   );
 }
