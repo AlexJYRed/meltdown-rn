@@ -12,6 +12,7 @@
    ```
    new terminal
    cd frontend
+   ./setup.sh
    npm install
     npx expo start
    ```
