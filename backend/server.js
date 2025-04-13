@@ -9,7 +9,7 @@ const io = new Server(server, {
 let hosts = {}; // { socketId: { id, name, gameStarted: false } }
 let players = {}; // { socketId: { name, state, levers, hostId } }
 let usedColors = new Set();
-let activeRule = null;
+let activeRules = {}; // { hostId: rule }
 
 const availableColors = [
   "Red",
@@ -53,16 +53,15 @@ function removePlayer(socketId) {
   }
 
   io.emit("host-list", Object.values(hosts));
-  io.emit("players", players);
+  io.emit("players", { players, rules: activeRules });
 }
 
 function runGameRules() {
-  if (!activeRule) return;
-
-  const { requires, dependent } = activeRule;
-
   for (const [id, player] of Object.entries(players)) {
-    const { state, levers } = player;
+    const { state, levers, hostId } = player;
+    const rule = activeRules[hostId];
+    if (!rule) continue;
+    const { requires, dependent } = rule;
     const depIndex = levers.indexOf(dependent);
     const reqIndex = levers.indexOf(requires);
 
@@ -71,9 +70,18 @@ function runGameRules() {
       const reqOn = state[reqIndex];
 
       if (depOn && !reqOn) {
+        console.log("Rule broken");
+        // Reset the illegal lever
+        state[depIndex] = false;
+
         io.to(id).emit("violation", {
           message: `${dependent} lever cannot be ON unless ${requires} is also ON.`,
         });
+
+        // Update server state + notify everyone
+        players[id].state = [...state];
+        io.emit("players", { players, rules: activeRules });
+
       }
     }
   }
@@ -97,7 +105,8 @@ io.on("connection", (socket) => {
       hostId: socket.id,
     };
     io.emit("host-list", Object.values(hosts));
-    io.emit("players", players);
+    io.emit("players", { players, rules: activeRules });
+
   });
 
   socket.on("find-hosts", () => {
@@ -113,32 +122,46 @@ io.on("connection", (socket) => {
       levers,
       hostId,
     };
-    io.emit("players", players);
+    io.emit("players", { players, rules: activeRules });
+
   });
 
   socket.on("start-game", () => {
     if (hosts[socket.id]) {
       hosts[socket.id].gameStarted = true;
 
-      activeRule = generateRuleFromUsedColors();
-      console.log("Generated Rule:", activeRule); // ✅ Print rule to terminal
+      const rule = generateRuleFromUsedColors();
+      activeRules[socket.id] = rule;
+      console.log("Generated Rule:", rule);
 
       for (const [id, player] of Object.entries(players)) {
         if (player.hostId === socket.id || id === socket.id) {
-          io.to(id).emit("start-game", { rule: activeRule });
+          io.to(id).emit("start-game", { rule });
         }
       }
-      
 
       io.emit("host-list", Object.values(hosts));
     }
+  });
+
+  socket.on("reset-all", () => {
+    console.log("Received RESET request from", socket.id);
+
+    hosts = {};
+    players = {};
+    usedColors = new Set();
+    activeRules = {};
+
+    io.emit("host-list", []);
+    io.emit("players", { });
   });
 
   socket.on("updateState", (state) => {
     if (players[socket.id]) {
       players[socket.id].state = state;
       runGameRules();
-      io.emit("players", players);
+      io.emit("players", { players, rules: activeRules });
+
     }
   });
 

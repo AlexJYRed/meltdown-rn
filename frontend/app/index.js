@@ -35,6 +35,20 @@ export default function HomeScreen() {
       <Button title="Host Game" onPress={() => handleNavigate("/host")} />
       <View style={{ height: 20 }} />
       <Button title="Join Game" onPress={() => handleNavigate("/join")} />
+
+      <Button
+        title="⚠️ Reset Server"
+        color="darkred"
+        onPress={() => {
+          fetch("http://<YOUR_LOCAL_IP>:3000/reset", { method: "POST" }).catch(
+            () => {
+              // fallback to socket
+              const socket = require("../utils/socket").default;
+              socket.emit("reset-all");
+            }
+          );
+        }}
+      />
     </View>
   );
 }

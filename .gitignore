@@ -1,0 +1,61 @@
+# --------------------
+# Global
+# --------------------
+node_modules/
+.env
+.env.*.local
+.DS_Store
+*.log
+*.lock
+dist/
+build/
+.cache/
+.vscode/
+.idea/
+*.iml
+*.swp
+
+# --------------------
+# OS-specific
+# --------------------
+# macOS
+*.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+.Spotlight-V100
+.Trashes
+._*
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --------------------
+# Frontend (React/Vite)
+# --------------------
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/.vite/
+frontend/.next/
+frontend/build/
+frontend/.turbo/
+
+# --------------------
+# Backend (Node/Express)
+# --------------------
+backend/node_modules/
+backend/.env
+backend/.env.local
+backend/logs/
+backend/pids/
+backend/temp/
+backend/uploads/
+backend/.cache/

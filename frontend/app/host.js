@@ -42,7 +42,7 @@ export default function HostScreen() {
         <Button
           title="Start Game"
           onPress={handleStart}
-          disabled={playerList.length === 0}
+          // disabled={playerList.length === 0}
         />
       </View>
     </View>

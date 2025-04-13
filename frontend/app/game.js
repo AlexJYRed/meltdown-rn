@@ -9,7 +9,6 @@ export default function GameScreen() {
     useContext(GameContext);
   const router = useRouter();
 
-
   useEffect(() => {
     const handleViolation = ({ message }) => {
       Alert.alert("Rule Violation", message);

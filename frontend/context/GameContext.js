@@ -11,19 +11,27 @@ export function GameProvider({ children }) {
   const [myState, setMyState] = useState([false, false, false, false]);
   const [myLevers, setMyLevers] = useState([]);
   const [rule, setRule] = useState(null);
-  
 
   useEffect(() => {
     socket.connect();
 
     const handleConnect = () => setMyId(socket.id);
     const handlePlayers = (data) => {
-      setAllStates(data);
-      if (data[socket.id]) {
-        const me = data[socket.id];
-        if (me?.state) setMyState(me.state);
-        if (me?.levers) setMyLevers(me.levers);
+      const allPlayerStates = data.players ?? data;
+      setAllStates(allPlayerStates);
+
+      const me = allPlayerStates[socket.id];
+      if (me?.state) setMyState(me.state);
+      if (me?.levers) setMyLevers(me.levers);
+
+      if (data.rules) {
+        const rule = data.rules[me?.hostId];
+        if (rule) {
+          setRule(rule);
+        }
       }
+
+      console.log("Received players + rules payload:", data);
     };
 
     const handleStartGame = ({ rule }) => {

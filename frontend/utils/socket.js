@@ -1,6 +1,6 @@
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-// Replace with your computer’s local IP address
-const socket = io('http://10.128.140.66:3000');
+const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL || "http://localhost:3000");
 
+console.log(socket);
 export default socket;
