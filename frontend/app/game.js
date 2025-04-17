@@ -10,6 +10,10 @@ export default function GameScreen() {
   const router = useRouter();
 
   useEffect(() => {
+    console.log("Updated allStates:", allStates);
+  }, [allStates]);
+
+  useEffect(() => {
     const handleViolation = ({ message }) => {
       Alert.alert("Rule Violation", message);
     };
