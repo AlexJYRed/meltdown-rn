@@ -69,7 +69,7 @@ export default function GameScreen() {
       {Object.entries(allStates).map(([id, player]) => (
         <Text key={id}>
           {player.name}: {JSON.stringify(player.state)} —{" "}
-          {player.levers?.join(", ")}
+          {player.levers.join(", ")}
         </Text>
       ))}
 

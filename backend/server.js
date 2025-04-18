@@ -57,32 +57,49 @@ function removePlayer(socketId) {
 }
 
 function runGameRules() {
-  for (const [id, player] of Object.entries(players)) {
-    const { state, levers, hostId } = player;
+  for (const hostId of Object.keys(hosts)) {
     const rule = activeRules[hostId];
     if (!rule) continue;
+
     const { requires, dependent } = rule;
-    const depIndex = levers.indexOf(dependent);
-    const reqIndex = levers.indexOf(requires);
 
-    if (depIndex !== -1 && reqIndex !== -1) {
-      const depOn = state[depIndex];
-      const reqOn = state[reqIndex];
+    let requiresState = null;
+    let dependentPlayerId = null;
+    let dependentIndex = -1;
 
-      if (depOn && !reqOn) {
-        console.log("Rule broken");
-        // Reset the illegal lever
-        state[depIndex] = false;
+    for (const [playerId, player] of Object.entries(players)) {
+      if (player.hostId !== hostId) continue;
 
-        io.to(id).emit("violation", {
-          message: `${dependent} lever cannot be ON unless ${requires} is also ON.`,
-        });
+      const { levers, state } = player;
 
-        // Update server state + notify everyone
-        players[id].state = [...state];
-        io.emit("players", { players, rules: activeRules });
-
+      const reqIdx = levers.indexOf(requires);
+      if (reqIdx !== -1) {
+        requiresState = state[reqIdx];
       }
+
+      const depIdx = levers.indexOf(dependent);
+      if (depIdx !== -1) {
+        dependentIndex = depIdx;
+        dependentPlayerId = playerId;
+      }
+    }
+
+    if (
+      requiresState === false &&
+      dependentPlayerId &&
+      dependentIndex !== -1 &&
+      players[dependentPlayerId].state[dependentIndex] === true
+    ) {
+      console.log("🔒 Rule broken: dependent ON but requires OFF");
+
+      // Reset the dependent lever
+      players[dependentPlayerId].state[dependentIndex] = false;
+
+      io.to(dependentPlayerId).emit("violation", {
+        message: `${dependent} lever cannot be ON unless ${requires} is also ON.`,
+      });
+
+      io.emit("players", { players, rules: activeRules });
     }
   }
 }
@@ -106,7 +123,6 @@ io.on("connection", (socket) => {
     };
     io.emit("host-list", Object.values(hosts));
     io.emit("players", { players, rules: activeRules });
-
   });
 
   socket.on("find-hosts", () => {
@@ -123,7 +139,6 @@ io.on("connection", (socket) => {
       hostId,
     };
     io.emit("players", { players, rules: activeRules });
-
   });
 
   socket.on("start-game", () => {
@@ -153,7 +168,7 @@ io.on("connection", (socket) => {
     activeRules = {};
 
     io.emit("host-list", []);
-    io.emit("players", { });
+    io.emit("players", {});
   });
 
   socket.on("updateState", (state) => {
@@ -161,7 +176,6 @@ io.on("connection", (socket) => {
       players[socket.id].state = state;
       runGameRules();
       io.emit("players", { players, rules: activeRules });
-
     }
   });
 

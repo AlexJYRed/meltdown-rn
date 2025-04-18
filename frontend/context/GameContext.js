@@ -4,6 +4,7 @@ import React, {
   useState,
   useMemo,
   useRef,
+  useCallback,
 } from "react";
 import socket from "../utils/socket";
 
@@ -47,8 +48,9 @@ export function GameProvider({ children }) {
         console.warn("⚠️ Received player update but no changes detected.");
       } else {
         console.log("✅ Updating allStates with new data.");
-        lastPlayersRef.current = players;
-        setAllStates(players);
+        const deepCloned = JSON.parse(JSON.stringify(players));
+        lastPlayersRef.current = deepCloned;
+        setAllStates(deepCloned);
       }
     };
 
@@ -62,6 +64,10 @@ export function GameProvider({ children }) {
     socket.on("connect", handleConnect);
     socket.on("players", handlePlayers);
     socket.on("start-game", handleStartGame);
+
+    socket.on("players", (data) => {
+      console.log("🔥 PLAYERS EVENT FIRED ON DEVICE:", data);
+    });
 
     // Safety: Request state if not received in 5s
     const fallbackTimer = setTimeout(() => {
@@ -80,13 +86,14 @@ export function GameProvider({ children }) {
     };
   }, []);
 
-  const toggleLever = (index) => {
-    const newState = [...myState];
-    newState[index] = !newState[index];
-    setMyState(newState);
-    console.log(`🕹️ Lever ${index} toggled to ${newState[index]}`);
-    socket.emit("updateState", newState);
-  };
+  const toggleLever = useCallback((index) => {
+    setMyState((prev) => {
+      const newState = [...prev];
+      newState[index] = !newState[index];
+      socket.emit("updateState", newState);
+      return newState;
+    });
+  }, []);
 
   const hostGame = () => {
     console.log("📡 Emitting host-game");
