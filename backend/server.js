@@ -9,7 +9,7 @@ const io = new Server(server, {
 let hosts = {}; // { socketId: { id, name, gameStarted: false } }
 let players = {}; // { socketId: { name, state, levers, hostId } }
 let usedColors = new Set();
-let activeRules = {}; // { hostId: rule }
+let activeRules = {}; // { playerId: rule }
 
 const availableColors = [
   "Red",
@@ -26,13 +26,6 @@ const availableColors = [
   "Lime",
 ];
 
-function generateRuleFromUsedColors() {
-  const colorsInPlay = Array.from(usedColors);
-  if (colorsInPlay.length < 2) return null;
-  const shuffled = [...colorsInPlay].sort(() => Math.random() - 0.5);
-  return { requires: shuffled[0], dependent: shuffled[1] };
-}
-
 function assignLevers(numLevers = 4) {
   const remaining = availableColors.filter((c) => !usedColors.has(c));
   const shuffled = [...remaining].sort(() => Math.random() - 0.5);
@@ -41,11 +34,27 @@ function assignLevers(numLevers = 4) {
   return selected;
 }
 
+function generateRuleForPlayer(playerId) {
+  const player = players[playerId];
+  if (!player) return null;
+
+  const allColors = Array.from(usedColors);
+  const shuffled = allColors.sort(() => Math.random() - 0.5);
+
+  const dependent =
+    player.levers[Math.floor(Math.random() * player.levers.length)];
+  const requires = shuffled.find((c) => c !== dependent);
+  if (!requires) return null;
+
+  return { requires, dependent };
+}
+
 function removePlayer(socketId) {
   if (players[socketId]) {
     const levers = players[socketId].levers || [];
     levers.forEach((c) => usedColors.delete(c));
     delete players[socketId];
+    delete activeRules[socketId];
   }
 
   if (hosts[socketId]) {
@@ -57,45 +66,34 @@ function removePlayer(socketId) {
 }
 
 function runGameRules() {
-  for (const hostId of Object.keys(hosts)) {
-    const rule = activeRules[hostId];
-    if (!rule) continue;
-
+  for (const [playerId, rule] of Object.entries(activeRules)) {
     const { requires, dependent } = rule;
 
     let requiresState = null;
-    let dependentPlayerId = null;
     let dependentIndex = -1;
 
-    for (const [playerId, player] of Object.entries(players)) {
-      if (player.hostId !== hostId) continue;
-
-      const { levers, state } = player;
-
-      const reqIdx = levers.indexOf(requires);
+    for (const player of Object.values(players)) {
+      const reqIdx = player.levers.indexOf(requires);
       if (reqIdx !== -1) {
-        requiresState = state[reqIdx];
-      }
-
-      const depIdx = levers.indexOf(dependent);
-      if (depIdx !== -1) {
-        dependentIndex = depIdx;
-        dependentPlayerId = playerId;
+        requiresState = player.state[reqIdx];
       }
     }
 
+    const depPlayer = players[playerId];
+    if (!depPlayer) continue;
+    dependentIndex = depPlayer.levers.indexOf(dependent);
+
     if (
       requiresState === false &&
-      dependentPlayerId &&
       dependentIndex !== -1 &&
-      players[dependentPlayerId].state[dependentIndex] === true
+      depPlayer.state[dependentIndex] === true
     ) {
-      console.log("🔒 Rule broken: dependent ON but requires OFF");
+      console.log("🔒 Rule broken for", playerId);
 
       // Reset the dependent lever
-      players[dependentPlayerId].state[dependentIndex] = false;
+      depPlayer.state[dependentIndex] = false;
 
-      io.to(dependentPlayerId).emit("violation", {
+      io.to(playerId).emit("violation", {
         message: `${dependent} lever cannot be ON unless ${requires} is also ON.`,
       });
 
@@ -145,17 +143,18 @@ io.on("connection", (socket) => {
     if (hosts[socket.id]) {
       hosts[socket.id].gameStarted = true;
 
-      const rule = generateRuleFromUsedColors();
-      activeRules[socket.id] = rule;
-      console.log("Generated Rule:", rule);
-
       for (const [id, player] of Object.entries(players)) {
         if (player.hostId === socket.id || id === socket.id) {
-          io.to(id).emit("start-game", { rule });
+          const rule = generateRuleForPlayer(id);
+          if (rule) {
+            activeRules[id] = rule;
+            io.to(id).emit("start-game", { rule });
+          }
         }
       }
 
       io.emit("host-list", Object.values(hosts));
+      io.emit("players", { players, rules: activeRules });
     }
   });
 
