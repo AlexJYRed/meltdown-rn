@@ -76,11 +76,13 @@ function runGameRules() {
       const reqIdx = player.levers.indexOf(requires);
       if (reqIdx !== -1) {
         requiresState = player.state[reqIdx];
+        // break;
       }
     }
 
     const depPlayer = players[playerId];
     if (!depPlayer) continue;
+    const hostId = depPlayer.hostId;
     dependentIndex = depPlayer.levers.indexOf(dependent);
 
     if (
@@ -93,11 +95,20 @@ function runGameRules() {
       // Reset the dependent lever
       depPlayer.state[dependentIndex] = false;
 
+      // Decrease lives
+      if (!hosts[hostId].lives) hosts[hostId].lives = 5;
+      hosts[hostId].lives = Math.max(0, hosts[hostId].lives - 1);
+
       io.to(playerId).emit("violation", {
         message: `${dependent} lever cannot be ON unless ${requires} is also ON.`,
       });
 
-      io.emit("players", { players, rules: activeRules });
+      // Notify all clients in this game
+      io.to(hostId).emit("players", {
+        players,
+        rules: activeRules,
+        lives: hosts[hostId].lives,
+      });
     }
   }
 }
@@ -112,6 +123,7 @@ io.on("connection", (socket) => {
       id: socket.id,
       name: displayName,
       gameStarted: false,
+      lives: 5, // initialize lives
     };
     players[socket.id] = {
       name: displayName,

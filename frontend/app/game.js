@@ -5,8 +5,16 @@ import { GameContext } from "../context/GameContext";
 import socket from "../utils/socket";
 
 export default function GameScreen() {
-  const { myId, allStates, myState, myLevers, toggleLever, leaveGame, rule } =
-    useContext(GameContext);
+  const {
+    myId,
+    allStates,
+    myState,
+    myLevers,
+    toggleLever,
+    leaveGame,
+    rule,
+    lives,
+  } = useContext(GameContext);
   const router = useRouter();
 
   useEffect(() => {
@@ -64,6 +72,7 @@ export default function GameScreen() {
           Waiting for rule...
         </Text>
       )}
+      <Text style={{ fontSize: 18, marginBottom: 10 }}>❤️ Lives: {lives}</Text>
 
       <Text style={{ marginTop: 30, fontSize: 16 }}>Players:</Text>
       {Object.entries(allStates).map(([id, player]) => (

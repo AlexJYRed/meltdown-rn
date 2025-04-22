@@ -17,6 +17,7 @@ export function GameProvider({ children }) {
   const [myState, setMyState] = useState([false, false, false, false]);
   const [myLevers, setMyLevers] = useState([]);
   const [rule, setRule] = useState(null);
+  const [lives, setLives] = useState(5);
 
   const lastPlayersRef = useRef({});
 
@@ -49,6 +50,9 @@ export function GameProvider({ children }) {
       if (ruleSet[me?.hostId]) {
         // console.log("📜 Rule from ruleset:", ruleSet[me.hostId]);
         setRule(ruleSet[me.hostId]);
+      }
+      if (typeof data.lives === "number") {
+        setLives(data.lives);
       }
 
       // Check if the state actually changed
@@ -137,6 +141,7 @@ export function GameProvider({ children }) {
       joinHost,
       leaveGame,
       rule,
+      lives,
     }),
     [myId, allStates, myState, myLevers, toggleLever, playerName, rule]
   );
