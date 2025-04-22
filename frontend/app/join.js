@@ -1,9 +1,20 @@
 // app/join.js
 import { useEffect, useState, useContext } from "react";
-import { View, Text, Button, FlatList, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  FlatList,
+  Image,
+  ImageBackground,
+  Dimensions,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import socket from "../utils/socket";
 import { GameContext } from "../context/GameContext";
+const { width, height } = Dimensions.get("window");
 
 export default function JoinScreen() {
   const [hosts, setHosts] = useState([]);
@@ -34,36 +45,49 @@ export default function JoinScreen() {
   const joinedPlayers = Object.values(allStates);
 
   return (
-    <View style={{ padding: 40 }}>
-      {waiting ? (
-        <>
-          <Text style={{ fontSize: 24, marginBottom: 20 }}>
-            Waiting for host to start...
-          </Text>
-          <FlatList
-            data={joinedPlayers}
-            keyExtractor={(item, index) => item.name + index}
-            renderItem={({ item }) => <Text>{item.name}</Text>}
-          />
-          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
-        </>
-      ) : (
-        <>
-          <Text style={{ fontSize: 24, marginBottom: 20 }}>
-            Available Hosts:
-          </Text>
-          <FlatList
-            data={hosts}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Button
-                title={item.name || item.id}
-                onPress={() => handleJoin(item.id)}
-              />
-            )}
-          />
-        </>
-      )}
-    </View>
+    <ImageBackground
+      source={require("../assets/bg.png")}
+      style={styles.background}
+      resizeMode="fill"
+    >
+      <View style={{ padding: 40 }}>
+        {waiting ? (
+          <>
+            <Text style={{ fontSize: 24, marginBottom: 20 }}>
+              Waiting for host to start...
+            </Text>
+            <FlatList
+              data={joinedPlayers}
+              keyExtractor={(item, index) => item.name + index}
+              renderItem={({ item }) => <Text>{item.name}</Text>}
+            />
+            <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+          </>
+        ) : (
+          <>
+            <Text style={{ fontSize: 24, marginBottom: 20 }}>
+              Available Hosts:
+            </Text>
+            <FlatList
+              data={hosts}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <Button
+                  title={item.name || item.id}
+                  onPress={() => handleJoin(item.id)}
+                />
+              )}
+            />
+          </>
+        )}
+      </View>
+    </ImageBackground>
   );
 }
+
+const styles = StyleSheet.create({
+  background: {
+    width,
+    height,
+  },
+});

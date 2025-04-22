@@ -1,8 +1,20 @@
 import { useContext, useEffect, useState } from "react";
-import { View, Text, Button, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  Alert,
+  FlatList,
+  Image,
+  ImageBackground,
+  Dimensions,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { GameContext } from "../context/GameContext";
 import socket from "../utils/socket";
+const { width, height } = Dimensions.get("window");
 
 export default function GameScreen() {
   const {
@@ -52,46 +64,86 @@ export default function GameScreen() {
   };
 
   return (
-    <View style={{ padding: 40 }}>
-      {/* <Text style={{ fontSize: 24, marginBottom: 20 }}>Control Room</Text> */}
+    <ImageBackground
+      source={require("../assets/bg.png")}
+      style={styles.background1}
+      resizeMode="fill"
+    >
+      <ImageBackground
+        source={require("../assets/bg_control.png")}
+        style={styles.background2}
+        resizeMode="fill"
+      >
+        <View style={styles.screen}>
+          <Text style={styles.text}>Turn {instruction || "..."} ON</Text>
+        </View>
 
-      <Text style={{ fontSize: 24, marginVertical: 10 }}>
-        Turn {instruction || "..."} ON
-      </Text>
-      {myLevers.map((lever, index) => (
-        <Button
-          key={index}
-          title={`${lever}: ${myState[index] ? "ON" : "OFF"}`}
-          onPress={() => toggleLever(index)}
-          color={myState[index] ? "red" : "blue"}
-        />
-      ))}
+        <View style={styles.controls}>
+          {rule ? (
+            <Text style={styles.smalltext}>
+              ⚠️ Rule: {rule.dependent} button cannot be ON unless{" "}
+              {rule.requires} is ON
+            </Text>
+          ) : (
+            <Text style={styles.smalltext}>Waiting for rule...</Text>
+          )}
+          <Text style={styles.smalltext}>❤️ Lives: {lives}</Text>
+          <Text style={styles.smalltext}>🧮 Score: {score ?? 0}</Text>
+          {myLevers.map((lever, index) => (
+            <Button
+              key={index}
+              title={`${lever}: ${myState[index] ? "ON" : "OFF"}`}
+              onPress={() => toggleLever(index)}
+              color={myState[index] ? "red" : "blue"}
+            />
+          ))}
+        </View>
 
-      {rule ? (
-        <Text style={{ fontSize: 18, marginBottom: 20 }}>
-          ⚠️ Rule: {rule.dependent} lever cannot be ON unless {rule.requires} is
-          ON
-        </Text>
-      ) : (
-        <Text style={{ fontSize: 18, marginBottom: 20, color: "gray" }}>
-          Waiting for rule...
-        </Text>
-      )}
-      <Text style={{ fontSize: 18, marginBottom: 10 }}>❤️ Lives: {lives}</Text>
+        <View style={{ padding: 40 }}>
+          {/* <Text style={{ fontSize: 24, marginBottom: 20 }}>Control Room</Text> */}
 
-      <Text style={{ fontSize: 18 }}>🧮 Score: {score ?? 0}</Text>
+          <Text style={{ marginTop: 30, fontSize: 16 }}>Players:</Text>
+          {Object.entries(allStates).map(([id, player]) => (
+            <Text key={id}>
+              {player.name}: {JSON.stringify(player.state)} —{" "}
+              {player.levers.join(", ")}
+            </Text>
+          ))}
 
-      <Text style={{ marginTop: 30, fontSize: 16 }}>Players:</Text>
-      {Object.entries(allStates).map(([id, player]) => (
-        <Text key={id}>
-          {player.name}: {JSON.stringify(player.state)} —{" "}
-          {player.levers.join(", ")}
-        </Text>
-      ))}
-
-      <View style={{ marginTop: 30 }}>
-        <Button title="Leave Game" onPress={handleLeave} />
-      </View>
-    </View>
+          <View style={{ marginTop: 30 }}>
+            <Button title="Leave Game" onPress={handleLeave} />
+          </View>
+        </View>
+      </ImageBackground>
+    </ImageBackground>
   );
 }
+const styles = StyleSheet.create({
+  background1: {
+    width,
+    height,
+  },
+  background2: {
+    width: width,
+    height: height * 0.9,
+  },
+  screen: {
+    position: "absolute",
+    top: height * 0.14,
+    left: width * 0.18,
+  },
+  controls: {
+    marginTop: height * 0.37,
+    marginLeft: width * 0.05,
+    marginRight: width * 0.05,
+  },
+  text: {
+    fontSize: 24,
+    marginVertical: 10,
+    color: "white",
+  },
+  smalltext: {
+    fontSize: 16,
+    marginBottom: 20,
+  },
+});
