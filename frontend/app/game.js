@@ -14,6 +14,8 @@ export default function GameScreen() {
     leaveGame,
     rule,
     lives,
+    instruction,
+    score,
   } = useContext(GameContext);
   const router = useRouter();
 
@@ -51,8 +53,11 @@ export default function GameScreen() {
 
   return (
     <View style={{ padding: 40 }}>
-      <Text style={{ fontSize: 24, marginBottom: 20 }}>Control Room</Text>
+      {/* <Text style={{ fontSize: 24, marginBottom: 20 }}>Control Room</Text> */}
 
+      <Text style={{ fontSize: 24, marginVertical: 10 }}>
+        Turn {instruction || "..."} ON
+      </Text>
       {myLevers.map((lever, index) => (
         <Button
           key={index}
@@ -73,6 +78,8 @@ export default function GameScreen() {
         </Text>
       )}
       <Text style={{ fontSize: 18, marginBottom: 10 }}>❤️ Lives: {lives}</Text>
+
+      <Text style={{ fontSize: 18 }}>🧮 Score: {score ?? 0}</Text>
 
       <Text style={{ marginTop: 30, fontSize: 16 }}>Players:</Text>
       {Object.entries(allStates).map(([id, player]) => (

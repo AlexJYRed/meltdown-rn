@@ -18,6 +18,8 @@ export function GameProvider({ children }) {
   const [myLevers, setMyLevers] = useState([]);
   const [rule, setRule] = useState(null);
   const [lives, setLives] = useState(5);
+  const [instruction, setInstruction] = useState(null);
+  const [score, setScore] = useState(0);
 
   const lastPlayersRef = useRef({});
 
@@ -35,59 +37,46 @@ export function GameProvider({ children }) {
     socket.connect();
 
     const handleConnect = () => {
-      // console.log("🔌 Connected to server as:", socket.id);
+      console.log("🔌 Connected to server as:", socket.id);
       setMyId(socket.id);
     };
 
     const handlePlayers = (data) => {
       const players = data.players ?? data;
-      // console.log("📦 Received 'players' payload:", players);
-
       const ruleSet = data.rules || {};
       const me = players[socket.id];
+
       if (me?.state) setMyState(me.state);
       if (me?.levers) setMyLevers(me.levers);
-      if (ruleSet[me?.hostId]) {
-        // console.log("📜 Rule from ruleset:", ruleSet[me.hostId]);
-        setRule(ruleSet[me.hostId]);
-      }
-      if (typeof data.lives === "number") {
-        setLives(data.lives);
-      }
+      if (ruleSet[me?.hostId]) setRule(ruleSet[me.hostId]);
+      if (typeof data.lives === "number") setLives(data.lives);
+      if (typeof data.instruction === "string")
+        setInstruction(data.instruction);
+      if (typeof data.score === "number") setScore(data.score);
 
-      // Check if the state actually changed
       const last = lastPlayersRef.current;
       const didChange = JSON.stringify(players) !== JSON.stringify(last);
-      if (!didChange) {
-        console.warn("⚠️ Received player update but no changes detected.");
-      } else {
-        // console.log("✅ Updating allStates with new data.");
+      if (didChange) {
         const deepCloned = JSON.parse(JSON.stringify(players));
         lastPlayersRef.current = deepCloned;
         setAllStates(deepCloned);
+      } else {
+        console.warn("⚠️ Received player update but no changes detected.");
       }
     };
 
     const handleStartGame = ({ rule }) => {
-      if (rule) {
-        setRule(rule);
-        // console.log("🚀 Received rule on start-game:", rule);
-      }
+      if (rule) setRule(rule);
     };
 
     socket.on("connect", handleConnect);
     socket.on("players", handlePlayers);
     socket.on("start-game", handleStartGame);
 
-    socket.on("players", (data) => {
-      // console.log("🔥 PLAYERS EVENT FIRED ON DEVICE:", data);
-    });
-
-    // Safety: Request state if not received in 5s
     const fallbackTimer = setTimeout(() => {
       if (Object.keys(lastPlayersRef.current).length === 0) {
         console.warn("⏰ No player data received — requesting manually.");
-        socket.emit("find-hosts"); // optionally request a full refresh
+        socket.emit("find-hosts");
       }
     }, 5000);
 
@@ -110,22 +99,23 @@ export function GameProvider({ children }) {
   }, []);
 
   const hostGame = () => {
-    // console.log("📡 Emitting host-game");
     socket.emit("host-game", playerName);
   };
 
   const joinHost = (hostId) => {
-    // console.log(`📡 Emitting join-host to ${hostId}`);
     socket.emit("join-host", { hostId, name: playerName });
   };
 
   const leaveGame = () => {
-    // console.log("📤 Emitting leave-game");
     socket.emit("leave-game");
     setAllStates({});
     setMyState([false, false, false, false]);
     setMyLevers([]);
     setMyId(null);
+    setRule(null);
+    setInstruction(null);
+    setScore(0);
+    setLives(5);
   };
 
   const contextValue = useMemo(
@@ -142,8 +132,21 @@ export function GameProvider({ children }) {
       leaveGame,
       rule,
       lives,
+      instruction,
+      score,
     }),
-    [myId, allStates, myState, myLevers, toggleLever, playerName, rule]
+    [
+      myId,
+      allStates,
+      myState,
+      myLevers,
+      toggleLever,
+      playerName,
+      rule,
+      lives,
+      instruction,
+      score,
+    ]
   );
 
   return (

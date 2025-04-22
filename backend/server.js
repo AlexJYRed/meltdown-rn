@@ -34,6 +34,13 @@ function assignLevers(numLevers = 4) {
   return selected;
 }
 
+function generateInstruction() {
+  const allLevers = Object.values(players).flatMap((p) => p.levers);
+  const unique = [...new Set(allLevers)];
+  if (!unique.length) return null;
+  return unique[Math.floor(Math.random() * unique.length)];
+}
+
 function generateRuleForPlayer(playerId) {
   const player = players[playerId];
   if (!player) return null;
@@ -74,10 +81,7 @@ function runGameRules() {
 
     for (const player of Object.values(players)) {
       const reqIdx = player.levers.indexOf(requires);
-      if (reqIdx !== -1) {
-        requiresState = player.state[reqIdx];
-        // break;
-      }
+      if (reqIdx !== -1) requiresState = player.state[reqIdx];
     }
 
     const depPlayer = players[playerId];
@@ -92,24 +96,40 @@ function runGameRules() {
     ) {
       console.log("🔒 Rule broken for", playerId);
 
-      // Reset the dependent lever
       depPlayer.state[dependentIndex] = false;
 
-      // Decrease lives
       if (!hosts[hostId].lives) hosts[hostId].lives = 5;
       hosts[hostId].lives = Math.max(0, hosts[hostId].lives - 1);
 
       io.to(playerId).emit("violation", {
         message: `${dependent} lever cannot be ON unless ${requires} is also ON.`,
       });
-
-      // Notify all clients in this game
-      io.to(hostId).emit("players", {
-        players,
-        rules: activeRules,
-        lives: hosts[hostId].lives,
-      });
     }
+
+    // ✅ Instruction check
+    const currentInstruction = hosts[hostId].instruction;
+    if (currentInstruction) {
+      for (const p of Object.values(players)) {
+        if (p.hostId !== hostId) continue;
+        const idx = p.levers.indexOf(currentInstruction);
+        if (idx !== -1 && p.state[idx]) {
+          hosts[hostId].score++;
+          hosts[hostId].instruction = generateInstruction();
+          console.log(
+            `✅ ${currentInstruction} complete. Score: ${hosts[hostId].score}`
+          );
+        }
+      }
+    }
+
+    // Update all clients for this host
+    io.to(hostId).emit("players", {
+      players,
+      rules: activeRules,
+      lives: hosts[hostId].lives,
+      score: hosts[hostId].score,
+      instruction: hosts[hostId].instruction,
+    });
   }
 }
 
@@ -153,7 +173,11 @@ io.on("connection", (socket) => {
 
   socket.on("start-game", () => {
     if (hosts[socket.id]) {
-      hosts[socket.id].gameStarted = true;
+      const host = hosts[socket.id];
+      host.score = 0;
+      host.lives = 5;
+      host.instruction = generateInstruction();
+      host.gameStarted = true;
 
       for (const [id, player] of Object.entries(players)) {
         if (player.hostId === socket.id || id === socket.id) {
@@ -165,8 +189,13 @@ io.on("connection", (socket) => {
         }
       }
 
-      io.emit("host-list", Object.values(hosts));
-      io.emit("players", { players, rules: activeRules });
+      io.to(socket.id).emit("players", {
+        players,
+        rules: activeRules,
+        lives: host.lives,
+        score: host.score,
+        instruction: host.instruction,
+      });
     }
   });
 
