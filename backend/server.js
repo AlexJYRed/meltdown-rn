@@ -24,6 +24,7 @@ const availableColors = [
   "Magenta",
   "Teal",
   "Lime",
+  /*
   "Star",
   "Smiley",
   "Spiral",
@@ -47,6 +48,7 @@ const availableColors = [
   "Oof",
   "Aagh",
   "Moo",
+  */
 ];
 
 function assignLevers(numLevers = 4) {
@@ -144,14 +146,24 @@ function runGameRules() {
         }
       }
     }
-
-    // Update all clients for this host
-    io.to(hostId).emit("players", {
+    /*
+    io.emit("players", {
       players,
       rules: activeRules,
       lives: hosts[hostId].lives,
       score: hosts[hostId].score,
       instruction: hosts[hostId].instruction,
+    });
+    */
+    // Update all clients for this host, including the host and joiners
+    Object.keys(players).forEach((playerId) => {
+      io.to(playerId).emit("players", {
+        players,
+        rules: activeRules,
+        lives: Object.values(hosts)[0]?.lives || 5,
+        score: Object.values(hosts)[0]?.score || 0,
+        instruction: Object.values(hosts)[0]?.instruction || null,
+      });
     });
   }
 }
@@ -207,17 +219,24 @@ io.on("connection", (socket) => {
           const rule = generateRuleForPlayer(id);
           if (rule) {
             activeRules[id] = rule;
-            io.to(id).emit("start-game", { rule });
+            io.to(id).emit("start-game", {
+              rule,
+              instruction: host.instruction,
+            });
           }
         }
       }
 
-      io.to(socket.id).emit("players", {
-        players,
-        rules: activeRules,
-        lives: host.lives,
-        score: host.score,
-        instruction: host.instruction,
+      Object.entries(players).forEach(([id, player]) => {
+        if (player.hostId === socket.id || id === socket.id) {
+          io.to(id).emit("players", {
+            players,
+            rules: activeRules,
+            lives: host.lives,
+            score: host.score,
+            instruction: host.instruction,
+          });
+        }
       });
     }
   });
@@ -238,7 +257,13 @@ io.on("connection", (socket) => {
     if (players[socket.id]) {
       players[socket.id].state = state;
       runGameRules();
-      io.emit("players", { players, rules: activeRules });
+      io.emit("players", {
+        players,
+        rules: activeRules,
+        lives: Object.values(hosts)[0]?.lives || 5,
+        score: Object.values(hosts)[0]?.score || 0,
+        instruction: Object.values(hosts)[0]?.instruction || null,
+      });
     }
   });
 

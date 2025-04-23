@@ -77,7 +77,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   background: {
     width,
-    height,
+    height: height * 1.1,
   },
   container: {
     padding: 40,
@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
   tvImage: {
     width: width * 1,
     marginTop: height * 0.1,
-    marginBottom: height * 0.05,
-    //height: height * 0.5,
+    //marginBottom: height * 0.05,
+    height: height * 0.4,
   },
   title: {
     fontSize: 24,

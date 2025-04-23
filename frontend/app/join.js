@@ -88,6 +88,6 @@ export default function JoinScreen() {
 const styles = StyleSheet.create({
   background: {
     width,
-    height,
+    height: height * 1.1,
   },
 });

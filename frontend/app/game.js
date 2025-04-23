@@ -17,6 +17,8 @@ import socket from "../utils/socket";
 const { width, height } = Dimensions.get("window");
 
 export default function GameScreen() {
+  console.log("Re-rendering GameScreen");
+
   const {
     myId,
     allStates,
@@ -25,14 +27,22 @@ export default function GameScreen() {
     toggleLever,
     leaveGame,
     rule,
-    lives,
+    setRule,
     instruction,
+    setInstruction,
+    lives,
+    setLives,
     score,
+    setScore,
   } = useContext(GameContext);
+
   const router = useRouter();
+
+  const [forceRender, setForceRender] = useState(false);
 
   useEffect(() => {
     console.log("Updated allStates:", allStates);
+    setForceRender((prev) => !prev);
   }, [allStates]);
 
   useEffect(() => {
@@ -40,21 +50,43 @@ export default function GameScreen() {
       Alert.alert("Rule Violation", message);
     };
 
-    const handleStartGame = (data) => {
-      console.log("Received start-game event:", data);
-      if (data?.rule) {
-        setRule(data.rule);
-      } else {
-        console.warn("No rule received in start-game event.");
-      }
+    const handleStartGame = ({ rule, instruction, score, lives }) => {
+      console.log("Received start-game:", {
+        rule,
+        instruction,
+        score,
+        lives,
+      });
+      if (rule) setRule(rule);
+      if (instruction) setInstruction(instruction);
+      if (typeof score === "number") setScore(score);
+      if (typeof lives === "number") setLives(lives);
     };
 
     socket.on("violation", handleViolation);
     socket.on("start-game", handleStartGame);
 
+    const handlePlayersUpdate = ({
+      players,
+      rules,
+      lives,
+      score,
+      instruction,
+    }) => {
+      console.log("Received players update:", players);
+
+      // Update context state
+      setScore(score);
+      setLives(lives);
+      setInstruction(instruction);
+    };
+
+    socket.on("players", handlePlayersUpdate);
+
     return () => {
       socket.off("violation", handleViolation);
       socket.off("start-game", handleStartGame);
+      socket.off("players", handlePlayersUpdate);
     };
   }, []);
 
@@ -79,6 +111,11 @@ export default function GameScreen() {
         </View>
 
         <View style={styles.controls}>
+          <Text style={{ color: "black" }}>myId: {myId}</Text>
+          <Text style={{ color: "black" }}>
+            my state: {JSON.stringify(allStates[myId]?.state)}
+          </Text>
+
           {rule ? (
             <Text style={styles.smalltext}>
               ⚠️ Rule: {rule.dependent} button cannot be ON unless{" "}
@@ -89,14 +126,20 @@ export default function GameScreen() {
           )}
           <Text style={styles.smalltext}>❤️ Lives: {lives}</Text>
           <Text style={styles.smalltext}>🧮 Score: {score ?? 0}</Text>
-          {myLevers.map((lever, index) => (
-            <Button
-              key={index}
-              title={`${lever}: ${myState[index] ? "ON" : "OFF"}`}
-              onPress={() => toggleLever(index)}
-              color={myState[index] ? "red" : "blue"}
-            />
-          ))}
+          {myLevers.map((lever, index) => {
+            // fallback: use myState first, fall back to allStates[myId] if available
+            const isOn =
+              myState[index] ?? allStates[myId]?.state?.[index] ?? false;
+
+            return (
+              <Button
+                key={index}
+                title={`${lever}: ${isOn ? "ON" : "OFF"}`}
+                onPress={() => toggleLever(index)}
+                color={isOn ? "red" : "blue"}
+              />
+            );
+          })}
         </View>
 
         <View style={{ padding: 40 }}>
@@ -121,7 +164,7 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   background1: {
     width,
-    height,
+    height: height * 1.1,
   },
   background2: {
     width: width,
