@@ -26,6 +26,7 @@ export function GameProvider({ children }) {
   useEffect(() => {
     if (myId && allStates[myId]) {
       const updated = allStates[myId].state;
+      console.log("🔄 Checking sync for P2:", updated, myState);
       if (JSON.stringify(updated) !== JSON.stringify(myState)) {
         console.log("🔄 Syncing myState from allStates:", updated);
         setMyState(updated);
@@ -55,18 +56,17 @@ export function GameProvider({ children }) {
       if (typeof data.score === "number") setScore(data.score);
 
       const last = lastPlayersRef.current;
-      const didChange = JSON.stringify(players) !== JSON.stringify(last);
-      if (didChange) {
-        const deepCloned = JSON.parse(JSON.stringify(players));
-        lastPlayersRef.current = deepCloned;
-        setAllStates(deepCloned);
-      } else {
-        console.warn("⚠️ Received player update but no changes detected.");
-      }
+      const deepCloned = JSON.parse(JSON.stringify(players));
+      lastPlayersRef.current = deepCloned;
+      setAllStates(deepCloned);
+      //console.log("Updated allStates:", deepCloned);
     };
 
-    const handleStartGame = ({ rule }) => {
+    const handleStartGame = ({ rule, instruction, score, lives }) => {
       if (rule) setRule(rule);
+      if (typeof instruction === "string") setInstruction(instruction);
+      if (typeof score === "number") setScore(score);
+      if (typeof lives === "number") setLives(lives);
     };
 
     socket.on("connect", handleConnect);
@@ -134,6 +134,10 @@ export function GameProvider({ children }) {
       lives,
       instruction,
       score,
+      setRule,
+      setInstruction,
+      setScore,
+      setLives,
     }),
     [
       myId,
@@ -146,6 +150,10 @@ export function GameProvider({ children }) {
       lives,
       instruction,
       score,
+      setRule,
+      setInstruction,
+      setScore,
+      setLives,
     ]
   );
 

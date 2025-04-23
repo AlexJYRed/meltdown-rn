@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup.sh
+# mac_setup.sh
 
 IP=$(ipconfig getifaddr en0)  # Mac-specific; use `hostname -I` for Linux
 
