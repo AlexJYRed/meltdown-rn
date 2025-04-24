@@ -111,10 +111,6 @@ export default function GameScreen() {
         </View>
 
         <View style={styles.controls}>
-          <Text style={{ color: "black" }}>myId: {myId}</Text>
-          <Text style={{ color: "black" }}>
-            my state: {JSON.stringify(allStates[myId]?.state)}
-          </Text>
 
           {rule ? (
             <Text style={styles.smalltext}>
@@ -143,7 +139,11 @@ export default function GameScreen() {
         </View>
 
         <View style={{ padding: 40 }}>
-          {/* <Text style={{ fontSize: 24, marginBottom: 20 }}>Control Room</Text> */}
+
+          <Text style={{ color: "black" }}>myId: {myId}</Text>
+          <Text style={{ color: "black" }}>
+            my state: {JSON.stringify(allStates[myId]?.state)}
+          </Text>
 
           <Text style={{ marginTop: 30, fontSize: 16 }}>Players:</Text>
           {Object.entries(allStates).map(([id, player]) => (
