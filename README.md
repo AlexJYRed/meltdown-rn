@@ -12,7 +12,7 @@
    ```
    new terminal
    cd frontend
-   ./mac_setup.sh or ./windows_setup.sh
+   ./mac_setup.sh or ./windows_setup.ps1
    npm install
     npx expo start
    ```
